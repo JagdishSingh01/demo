@@ -9,9 +9,34 @@ import { User } from './models/User.js';
 const app = express();
 const port = process.env.PORT || 4000;
 const jwtSecret = process.env.JWT_SECRET || 'development-secret-change-me';
+const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/harbor_auth';
+let databaseConnection;
 
 app.use(cors());
 app.use(express.json());
+
+const connectDatabase = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (!databaseConnection) {
+    databaseConnection = mongoose.connect(mongoUri).catch((error) => {
+      databaseConnection = undefined;
+      throw error;
+    });
+  }
+  await databaseConnection;
+};
+
+if (process.env.VERCEL === '1') {
+  app.use(async (_req, res, next) => {
+    try {
+      await connectDatabase();
+      next();
+    } catch (error) {
+      console.error('MongoDB connection failed:', error.message);
+      res.status(503).json({ message: 'Database is not available. Check the MONGODB_URI deployment variable.' });
+    }
+  });
+}
 
 const createToken = (user) => jwt.sign({ id: user._id.toString() }, jwtSecret, { expiresIn: '7d' });
 const publicUser = (user) => ({ id: user._id, name: user.name, email: user.email });
@@ -76,7 +101,7 @@ export { app };
 
 const start = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/harbor_auth');
+    await connectDatabase();
     console.log('MongoDB connected. Users collection is ready.');
     app.listen(port, () => console.log(`API listening on http://localhost:${port}`));
   } catch (error) {

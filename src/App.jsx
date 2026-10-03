@@ -28,7 +28,7 @@ function App() {
       const response = await fetch(`/api/auth/${mode === 'login' ? 'login' : 'register'}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ message: 'The authentication API is not available on this deployment.' }));
       if (!response.ok) throw new Error(data.message);
       localStorage.setItem('harbor_token', data.token);
       setUser(data.user);

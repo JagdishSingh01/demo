@@ -72,6 +72,8 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ message: 'Something went wrong.' });
 });
 
+export { app };
+
 const start = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/harbor_auth');
@@ -83,4 +85,4 @@ const start = async () => {
   }
 };
 
-start();
+if (process.env.VERCEL !== '1') start();
